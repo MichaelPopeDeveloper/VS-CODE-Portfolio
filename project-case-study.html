@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Legal NLP Agent — Kilpatrick Townsend · Michael Pope</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #1a1b26; --bg-2: #16171f; --bg-3: #1f2030; --bg-elev: #232434;
+    --fg: #c0caf5; --fg-dim: #9aa5ce; --fg-mute: #565f89;
+    --line: #2a2b3d; --line-strong: #3b3d5b;
+    --accent: #7aa2f7; --accent-2: #bb9af7; --accent-3: #9ece6a;
+    --accent-warn: #e0af68; --accent-red: #f7768e; --accent-cyan: #7dcfff;
+    --display: 'Fraunces', 'Times New Roman', serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-2); color: var(--fg); font-family: var(--mono); font-size: 14px; -webkit-font-smoothing: antialiased; }
+
+  /* chrome */
+  .titlebar { height: 30px; background: var(--bg-2); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 14px; gap: 8px; font-size: 11px; color: var(--fg-mute); position: sticky; top: 0; z-index: 10; }
+  .traffic { display: flex; gap: 6px; }
+  .traffic > span { width: 11px; height: 11px; border-radius: 50%; }
+  .traffic .r { background: #ff5f57; } .traffic .y { background: #febc2e; } .traffic .g { background: #28c840; }
+  .titlebar .path { margin: 0 auto; }
+  .titlebar .path b { color: var(--fg); font-weight: 500; }
+
+  .tabbar { height: 32px; background: var(--bg-2); border-bottom: 1px solid var(--line); display: flex; align-items: stretch; padding-left: 8px; position: sticky; top: 30px; z-index: 10; }
+  .tab { display: flex; align-items: center; gap: 8px; padding: 0 14px; font-size: 11px; color: var(--fg-mute); border-right: 1px solid var(--line); text-decoration: none; white-space: nowrap; }
+  .tab.active { color: var(--fg); background: var(--bg); position: relative; }
+  .tab.active::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent-2); }
+  .tabbar .spacer { flex: 1; border-bottom: 1px solid var(--line); }
+
+  main { background: var(--bg); min-height: calc(100vh - 30px - 32px - 24px); }
+
+  /* hero */
+  .hero {
+    padding: 64px 0 48px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(122,162,247,0.08), transparent 50%),
+      radial-gradient(circle at 80% 100%, rgba(187,154,247,0.06), transparent 50%),
+      var(--bg);
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 32px; }
+  .wrap-narrow { max-width: 760px; margin: 0 auto; padding: 0 32px; }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--fg-mute); text-decoration: none; margin-bottom: 28px; }
+  .back:hover { color: var(--accent); }
+
+  .crumb { font-size: 11px; color: var(--fg-mute); margin-bottom: 16px; display: flex; gap: 8px; align-items: center; }
+  .crumb a { color: var(--accent); text-decoration: none; }
+  .crumb .sep { color: var(--fg-mute); }
+
+  h1.display {
+    font-family: var(--display); font-weight: 400; font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.98; letter-spacing: -0.025em; margin: 0 0 18px;
+    color: var(--fg);
+  }
+  h1.display em { color: var(--accent); font-style: italic; }
+
+  .subtitle { font-family: var(--display); font-style: italic; font-weight: 300; font-size: 22px; color: var(--fg-dim); max-width: 60ch; margin-bottom: 28px; line-height: 1.4; }
+
+  .meta-row { display: flex; gap: 24px; flex-wrap: wrap; font-size: 11px; color: var(--fg-mute); padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .meta-row .col .label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--fg-mute); margin-bottom: 4px; }
+  .meta-row .col .val { color: var(--fg); font-size: 12px; }
+  .meta-row .col .val.green { color: var(--accent-3); }
+  .meta-row .col .val.warn { color: var(--accent-warn); }
+
+  /* sections */
+  section.s { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section.s:last-of-type { border-bottom: none; }
+
+  .s-label { font-family: var(--mono); font-size: 10px; color: var(--accent-2); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; }
+  .s-label::before { content: '##'; color: var(--accent-warn); }
+  h2 { font-family: var(--display); font-weight: 400; font-size: clamp(32px, 4vw, 44px); line-height: 1.05; letter-spacing: -0.015em; color: var(--fg); margin: 0 0 24px; }
+  h2 em { color: var(--accent); font-style: italic; }
+
+  p.body { font-family: var(--mono); font-size: 14px; line-height: 1.75; color: var(--fg-dim); margin: 0 0 18px; max-width: 65ch; }
+  p.body b { color: var(--fg); font-weight: 500; }
+  p.body em { color: var(--accent-cyan); font-style: italic; }
+
+  /* hero stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 32px; }
+  .stat-card { background: var(--bg-2); border: 1px solid var(--line); padding: 20px; }
+  .stat-card .lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--fg-mute); margin-bottom: 10px; }
+  .stat-card .val { font-family: var(--display); font-size: 36px; line-height: 1; color: var(--accent-warn); }
+  .stat-card .val.green { color: var(--accent-3); }
+  .stat-card .val.blue { color: var(--accent); }
+  .stat-card .val.purple { color: var(--accent-2); }
+  .stat-card .sub { font-size: 11px; color: var(--fg-mute); margin-top: 6px; }
+  @media (max-width: 800px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+  /* arch diagram */
+  .arch {
+    background: var(--bg-2); border: 1px solid var(--line);
+    padding: 32px 24px; margin: 28px 0;
+    overflow-x: auto;
+  }
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; min-width: 720px; }
+  .arch-col h4 { font-family: var(--mono); font-size: 10px; color: var(--accent-2); text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--line-strong); }
+  .arch-node {
+    background: var(--bg); border: 1px solid var(--line-strong);
+    padding: 12px; margin-bottom: 10px;
+    font-family: var(--mono); font-size: 11px;
+    position: relative;
+  }
+  .arch-node b { color: var(--fg); display: block; margin-bottom: 4px; font-size: 12px; }
+  .arch-node span { color: var(--fg-mute); display: block; }
+  .arch-node.blue { border-left: 3px solid var(--accent); }
+  .arch-node.purple { border-left: 3px solid var(--accent-2); }
+  .arch-node.green { border-left: 3px solid var(--accent-3); }
+  .arch-node.warn { border-left: 3px solid var(--accent-warn); }
+  .arch-flow { font-family: var(--mono); font-size: 10px; color: var(--fg-mute); text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line-strong); }
+  .arch-flow span { color: var(--accent-3); }
+
+  /* router visualization */
+  .router {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0;
+  }
+  .llm-card {
+    background: var(--bg-2); border: 1px solid var(--line); padding: 18px;
+  }
+  .llm-card .name { font-family: var(--display); font-size: 18px; color: var(--fg); margin-bottom: 4px; }
+  .llm-card .name b { color: var(--accent); font-weight: 500; }
+  .llm-card .role { font-size: 10px; color: var(--accent-2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+  .llm-card .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 11px; }
+  .llm-card .bar-row .label { width: 80px; color: var(--fg-mute); font-size: 10px; }
+  .llm-card .bar-row .bar { flex: 1; height: 6px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
+  .llm-card .bar-row .bar > span { display: block; height: 100%; background: var(--accent); }
+  .llm-card .bar-row .pct { width: 36px; text-align: right; color: var(--fg-dim); font-size: 10px; }
+
+  /* code */
+  pre.code {
+    background: var(--bg-2); border: 1px solid var(--line);
+    padding: 18px; font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.65; color: var(--fg-dim); overflow: auto;
+    margin: 0 0 24px; position: relative;
+  }
+  pre.code .filename { position: absolute; top: -1px; right: 12px; background: var(--bg); border: 1px solid var(--line); border-top: none; padding: 2px 10px; font-size: 10px; color: var(--fg-mute); }
+  .kw { color: var(--accent-2); } .fn { color: var(--accent); } .str { color: var(--accent-3); }
+  .num { color: var(--accent-warn); } .com { color: var(--fg-mute); font-style: italic; }
+  .typ { color: var(--accent-cyan); } .pun { color: var(--fg-mute); }
+  code.inline { font-family: var(--mono); font-size: 0.92em; background: var(--bg-2); padding: 1px 6px; border-radius: 2px; color: var(--accent-cyan); border: 1px solid var(--line); }
+
+  /* timeline */
+  .tl { border-left: 2px solid var(--line-strong); padding-left: 28px; margin-top: 16px; }
+  .tl .item { position: relative; margin-bottom: 26px; }
+  .tl .item::before {
+    content: ''; position: absolute; left: -34px; top: 6px;
+    width: 10px; height: 10px; background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+  .tl .item.done::before { background: var(--accent-3); }
+  .tl .item.warn::before { background: var(--accent-warn); }
+  .tl .when { font-size: 10px; color: var(--fg-mute); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .tl .what { font-family: var(--display); font-size: 18px; color: var(--fg); margin-bottom: 6px; }
+  .tl .desc { font-size: 12px; color: var(--fg-dim); line-height: 1.6; }
+
+  /* outcomes */
+  .outcomes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+  .outcome {
+    background: var(--bg-2); border: 1px solid var(--line); border-left: 3px solid var(--accent-3);
+    padding: 18px;
+  }
+  .outcome .ico { font-family: var(--mono); font-size: 20px; color: var(--accent-3); margin-bottom: 8px; }
+  .outcome .h { font-family: var(--display); font-size: 17px; color: var(--fg); margin-bottom: 6px; line-height: 1.2; }
+  .outcome .d { font-size: 11px; color: var(--fg-dim); line-height: 1.6; }
+  @media (max-width: 800px) { .outcomes { grid-template-columns: 1fr; } }
+
+  /* lesson list */
+  .lessons { list-style: none; padding: 0; margin: 12px 0 0; }
+  .lessons li { padding: 14px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 18px; align-items: baseline; }
+  .lessons li:last-child { border-bottom: none; }
+  .lessons li .num { font-family: var(--display); font-size: 28px; color: var(--accent-warn); width: 56px; flex: none; }
+  .lessons li .body { font-family: var(--mono); font-size: 13px; color: var(--fg-dim); line-height: 1.65; }
+  .lessons li .body b { color: var(--fg); }
+
+  /* CTA */
+  .cta {
+    margin: 56px 0 0; padding: 32px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .cta .text { flex: 1; min-width: 260px; }
+  .cta h3 { font-family: var(--display); font-size: 24px; color: var(--fg); margin: 0 0 6px; }
+  .cta p { font-size: 12px; color: var(--fg-dim); margin: 0; line-height: 1.6; }
+  .cta a {
+    font-family: var(--mono); font-size: 12px; color: var(--bg);
+    background: var(--accent); padding: 12px 20px;
+    text-decoration: none; transition: all .15s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .cta a:hover { background: var(--accent-2); transform: translateY(-1px); }
+
+  /* statusline */
+  .statusline { height: 24px; background: var(--bg-2); border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--fg-dim); display: flex; align-items: center; position: sticky; bottom: 0; }
+  .statusline .seg { padding: 0 10px; height: 100%; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .statusline .mode { background: var(--accent); color: var(--bg); font-weight: 700; letter-spacing: 1px; }
+  .statusline .branch { color: var(--accent-3); }
+  .statusline .right { margin-left: auto; display: flex; }
+  .statusline .right .seg { background: var(--bg-3); border-left: 1px solid var(--line); }
+  .statusline .right .seg.last { background: var(--accent); color: var(--bg); font-weight: 600; }
+
+  @media (max-width: 700px) {
+    .wrap, .wrap-narrow { padding: 0 20px; }
+    .meta-row { gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+  <span style="margin-left:6px">ghostty</span>
+  <div class="path"><b>michael@vegas</b> : <b>~/projects/kt-nlp</b> · <span style="color:var(--accent-3)">(main)</span></div>
+  <span style="display:flex;gap:10px"><span style="color:var(--accent-3)">● connected</span></span>
+</div>
+
+<div class="tabbar">
+  <a class="tab" href="portfolio.html"><span style="color:var(--fg-mute)">md</span><span>about.md</span></a>
+  <a class="tab active" href="#"><span style="color:var(--accent-2)">tsx</span><span>kt-nlp.tsx</span></a>
+  <a class="tab" href="portfolio.html"><span style="color:var(--fg-mute)">log</span><span>experience.log</span></a>
+  <a class="tab" href="portfolio.html"><span style="color:var(--fg-mute)">json</span><span>contact.json</span></a>
+  <div class="spacer"></div>
+</div>
+
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <a class="back" href="portfolio.html">← :projects</a>
+    <div class="crumb">
+      <a href="portfolio.html">~/portfolio</a>
+      <span class="sep">/</span>
+      <a href="portfolio.html">projects</a>
+      <span class="sep">/</span>
+      <span style="color:var(--fg)">kt-nlp.tsx</span>
+    </div>
+
+    <div style="font-family:var(--mono);font-size:11px;color:var(--accent-warn);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">case study · 01</div>
+    <h1 class="display">Legal NLP <em>Agent</em><br>for 650 attorneys.</h1>
+    <p class="subtitle">
+      A multi-LLM research assistant that routes across GPT-4, Claude Sonnet 4, Gemini 2.5,
+      and a custom Llama fine-tune trained on Harvard &amp; Cornell legal corpora — saving
+      attorneys an average of 4.2 hours per matter.
+    </p>
+
+    <div class="meta-row">
+      <div class="col">
+        <div class="label">client</div>
+        <div class="val">Kilpatrick Townsend &amp; Stockton</div>
+      </div>
+      <div class="col">
+        <div class="label">role</div>
+        <div class="val">Sr AI Engineer / Tech Lead</div>
+      </div>
+      <div class="col">
+        <div class="label">timeline</div>
+        <div class="val warn">May 2024 — present</div>
+      </div>
+      <div class="col">
+        <div class="label">team</div>
+        <div class="val">4 eng · 2 paralegals · 1 PM</div>
+      </div>
+      <div class="col">
+        <div class="label">status</div>
+        <div class="val green">● shipped to prod</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="lbl">attorneys served</div>
+        <div class="val blue">650+</div>
+        <div class="sub">across DE / CN / US offices</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">avg time saved / matter</div>
+        <div class="val green">4.2h</div>
+        <div class="sub">measured over 8 weeks</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">documents indexed</div>
+        <div class="val warn">1.2M</div>
+        <div class="sub">Harvard + Cornell + internal</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">cost vs single-model</div>
+        <div class="val purple">−63%</div>
+        <div class="sub">via cheap-first routing</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- THE PROBLEM -->
+<section class="s">
+  <div class="wrap-narrow">
+    <div class="s-label">the problem</div>
+    <h2>Attorneys were burning <em>hours</em> on the same five questions.</h2>
+    <p class="body">
+      Kilpatrick Townsend handles complex IP, trademark, and litigation work. Every matter starts
+      with the same research patterns: <b>find the relevant precedent</b>, <b>summarize this brief</b>,
+      <b>compare these two contracts</b>, <b>locate this clause across our archive</b>. Senior associates
+      were doing it well. Junior associates were doing it slowly. Everyone was doing it manually.
+    </p>
+    <p class="body">
+      Out-of-the-box ChatGPT was a non-starter — client data couldn't leave the firm's tenant, and
+      attorneys needed answers grounded in <em>their</em> documents and precedents, not the open
+      internet. Off-the-shelf legal AI vendors quoted multi-million dollar contracts. Leadership
+      asked: <em>can we build it ourselves, faster, and have it actually work?</em>
+    </p>
+
+    <div class="arch">
+      <div class="arch-grid">
+        <div class="arch-col">
+          <h4>1. ingestion</h4>
+          <div class="arch-node green"><b>Go scraper</b><span>BrightData proxy pool</span><span>Harvard / Cornell</span></div>
+          <div class="arch-node green"><b>Python parser</b><span>PDF · DOCX · HTML</span><span>chunking + dedupe</span></div>
+          <div class="arch-node green"><b>Azure Blob</b><span>raw + chunked tiers</span></div>
+        </div>
+        <div class="arch-col">
+          <h4>2. retrieval &amp; routing</h4>
+          <div class="arch-node blue"><b>Semantic Kernel</b><span>C#/.NET orchestration</span></div>
+          <div class="arch-node blue"><b>Vector store</b><span>1.2M chunks · ada-3</span></div>
+          <div class="arch-node purple"><b>LLM router</b><span>4 models · cost-aware</span></div>
+        </div>
+        <div class="arch-col">
+          <h4>3. interface</h4>
+          <div class="arch-node warn"><b>React UI</b><span>chat + citations</span></div>
+          <div class="arch-node warn"><b>SSO + audit log</b><span>Azure AD · per-matter</span></div>
+          <div class="arch-node warn"><b>Feedback loop</b><span>thumbs → fine-tune queue</span></div>
+        </div>
+      </div>
+      <div class="arch-flow">
+        request → <span>retrieve</span> → <span>route</span> → <span>generate</span> → <span>cite</span> → response
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE ROUTER -->
+<section class="s">
+  <div class="wrap-narrow">
+    <div class="s-label">the routing layer</div>
+    <h2>Pick the <em>cheapest</em> model that gets it right.</h2>
+    <p class="body">
+      The hardest design decision wasn't picking a model — it was picking a <em>strategy for picking models</em>.
+      Different queries have wildly different cost/quality profiles. A docket lookup is trivial; a multi-document
+      summarization with citation alignment is not. We built a small classifier that scores each query along
+      three axes (length, retrieval count, reasoning depth) and dispatches to the right tier.
+    </p>
+
+    <div class="router">
+      <div class="llm-card">
+        <div class="name"><b>GPT-4</b> · gpt-4o</div>
+        <div class="role">tier 1 · complex reasoning</div>
+        <div class="bar-row"><span class="label">used for</span><div class="bar"><span style="width:18%"></span></div><span class="pct">18%</span></div>
+        <div class="bar-row"><span class="label">avg cost</span><div class="bar"><span style="width:88%;background:var(--accent-red)"></span></div><span class="pct">$$$$</span></div>
+        <div class="bar-row"><span class="label">latency</span><div class="bar"><span style="width:65%;background:var(--accent-warn)"></span></div><span class="pct">2.1s</span></div>
+      </div>
+      <div class="llm-card">
+        <div class="name"><b>Claude</b> · sonnet 4</div>
+        <div class="role">tier 1 · long-context summaries</div>
+        <div class="bar-row"><span class="label">used for</span><div class="bar"><span style="width:24%"></span></div><span class="pct">24%</span></div>
+        <div class="bar-row"><span class="label">avg cost</span><div class="bar"><span style="width:72%;background:var(--accent-warn)"></span></div><span class="pct">$$$</span></div>
+        <div class="bar-row"><span class="label">latency</span><div class="bar"><span style="width:50%;background:var(--accent-warn)"></span></div><span class="pct">1.6s</span></div>
+      </div>
+      <div class="llm-card">
+        <div class="name"><b>Gemini</b> · 2.5 flash</div>
+        <div class="role">tier 2 · everyday queries</div>
+        <div class="bar-row"><span class="label">used for</span><div class="bar"><span style="width:34%"></span></div><span class="pct">34%</span></div>
+        <div class="bar-row"><span class="label">avg cost</span><div class="bar"><span style="width:24%;background:var(--accent-3)"></span></div><span class="pct">$</span></div>
+        <div class="bar-row"><span class="label">latency</span><div class="bar"><span style="width:32%;background:var(--accent-3)"></span></div><span class="pct">0.9s</span></div>
+      </div>
+      <div class="llm-card">
+        <div class="name"><b>KT-Llama</b> · custom</div>
+        <div class="role">tier 3 · firm-tuned, on-prem</div>
+        <div class="bar-row"><span class="label">used for</span><div class="bar"><span style="width:24%"></span></div><span class="pct">24%</span></div>
+        <div class="bar-row"><span class="label">avg cost</span><div class="bar"><span style="width:8%;background:var(--accent-3)"></span></div><span class="pct">¢</span></div>
+        <div class="bar-row"><span class="label">latency</span><div class="bar"><span style="width:42%;background:var(--accent-3)"></span></div><span class="pct">1.2s</span></div>
+      </div>
+    </div>
+
+<pre class="code">
+<span class="filename">RouterPolicy.cs</span>
+<span class="kw">public class</span> <span class="typ">RouterPolicy</span>
+{
+    <span class="kw">public</span> <span class="typ">LlmTarget</span> <span class="fn">Pick</span>(<span class="typ">QueryFeatures</span> q)
+    {
+        <span class="com">// cheap path: short, single-doc, low reasoning depth</span>
+        <span class="kw">if</span> (q.Tokens &lt; <span class="num">1200</span> &amp;&amp; q.Reasoning &lt; <span class="num">2</span> &amp;&amp; q.RetrievalCount &lt;= <span class="num">3</span>)
+            <span class="kw">return</span> <span class="typ">LlmTarget</span>.<span class="fn">KtLlama</span>;
+
+        <span class="com">// everyday: medium scope, no citation alignment</span>
+        <span class="kw">if</span> (q.Tokens &lt; <span class="num">8000</span> &amp;&amp; !q.RequiresCitations)
+            <span class="kw">return</span> <span class="typ">LlmTarget</span>.<span class="fn">GeminiFlash</span>;
+
+        <span class="com">// long-context: multi-doc summaries, contracts</span>
+        <span class="kw">if</span> (q.Tokens &gt; <span class="num">32000</span> || q.DocCount &gt; <span class="num">5</span>)
+            <span class="kw">return</span> <span class="typ">LlmTarget</span>.<span class="fn">ClaudeSonnet</span>;
+
+        <span class="com">// expensive path: complex reasoning, mission-critical</span>
+        <span class="kw">return</span> <span class="typ">LlmTarget</span>.<span class="fn">Gpt4o</span>;
+    }
+}
+</pre>
+
+    <p class="body">
+      The result: <b>58% of queries route to the cheap tier</b>, <b>24% to mid</b>, and only <b>18% hit
+      premium models</b>. We measured cost-per-answer against a single-model baseline (GPT-4 only) and
+      came in <em>63% lower</em> at the same or better quality, judged on a weekly sample of 50 queries
+      reviewed by senior partners.
+    </p>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section class="s">
+  <div class="wrap-narrow">
+    <div class="s-label">how it shipped</div>
+    <h2>Eight months, <em>three</em> false starts.</h2>
+    <p class="body">
+      Most "how we built it" posts skip to the architecture diagram. The actual story has a lot of
+      backtracking. Here's the real timeline.
+    </p>
+
+    <div class="tl">
+      <div class="item done">
+        <div class="when">May 2024</div>
+        <div class="what">Discovery + first prototype</div>
+        <div class="desc">Two weeks shadowing attorneys. Built a single-model GPT-4 demo over a sample of 5,000 documents to prove the concept and get budget approval.</div>
+      </div>
+      <div class="item done">
+        <div class="when">Jun — Jul 2024</div>
+        <div class="what">Ingestion pipeline</div>
+        <div class="desc">Go scraper for Harvard / Cornell legal databases via BrightData. Python chunker. First version of the vector store with 200K chunks.</div>
+      </div>
+      <div class="item warn">
+        <div class="when">Aug 2024</div>
+        <div class="what">First false start: pure RAG wasn't enough</div>
+        <div class="desc">Citations were hallucinating. Long contract summaries were truncating. Retrieval recall was 71% — not good enough for legal work where one missed precedent is malpractice.</div>
+      </div>
+      <div class="item done">
+        <div class="when">Sep — Oct 2024</div>
+        <div class="what">Hybrid retrieval + Semantic Kernel orchestration</div>
+        <div class="desc">Switched to BM25 + dense hybrid search. Brought in Semantic Kernel for the agent loop — function calling for "fetch precedent", "compare clauses", "verify citation". Recall jumped to 94%.</div>
+      </div>
+      <div class="item done">
+        <div class="when">Nov 2024</div>
+        <div class="what">Multi-LLM router goes live</div>
+        <div class="desc">Started with two models (GPT-4 + Gemini). Added Claude in week 2 after long-context tests. Cost dropped 40% week-over-week.</div>
+      </div>
+      <div class="item done">
+        <div class="when">Jan 2025</div>
+        <div class="what">KT-Llama fine-tune</div>
+        <div class="desc">Trained a 70B Llama variant on the firm's own (anonymized) precedent corpus. Hosted on-prem for sensitive matters. Now handles 24% of queries at near-zero marginal cost.</div>
+      </div>
+      <div class="item done">
+        <div class="when">Mar 2025</div>
+        <div class="what">Rolled out to all 650 attorneys</div>
+        <div class="desc">Phased rollout: IP team first, then trademark, then full firm. Tracked thumbs feedback per response and fed it back into the fine-tune queue weekly.</div>
+      </div>
+      <div class="item">
+        <div class="when">Now</div>
+        <div class="what">Agent workflows + matter-specific memory</div>
+        <div class="desc">Building per-matter context windows so the agent remembers what it has already retrieved within an active case. Early tests show another ~30% time savings on long-running matters.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OUTCOMES -->
+<section class="s">
+  <div class="wrap-narrow">
+    <div class="s-label">outcomes</div>
+    <h2>What it actually <em>moved.</em></h2>
+
+    <div class="outcomes">
+      <div class="outcome">
+        <div class="ico">⏱</div>
+        <div class="h">4.2 hours saved per matter</div>
+        <div class="d">Tracked across 380 matters in the first 8 weeks of full rollout. Junior associates saw the largest gains.</div>
+      </div>
+      <div class="outcome">
+        <div class="ico">$</div>
+        <div class="h">63% lower per-query cost</div>
+        <div class="d">Versus a GPT-4-only baseline at equivalent quality. Driven by the routing layer pushing 58% of traffic to the cheap tier.</div>
+      </div>
+      <div class="outcome">
+        <div class="ico">▲</div>
+        <div class="h">94% retrieval recall</div>
+        <div class="d">Up from 71% on the first RAG-only prototype. Hybrid search + verification step closed the gap.</div>
+      </div>
+      <div class="outcome">
+        <div class="ico">≡</div>
+        <div class="h">650 attorneys onboarded</div>
+        <div class="d">Across DE, CN, and US offices. Average daily active rate is 71% within the IP and litigation teams.</div>
+      </div>
+      <div class="outcome">
+        <div class="ico">⚙</div>
+        <div class="h">Zero data leaves tenancy</div>
+        <div class="d">All sensitive matters route to KT-Llama on firm-owned infra. Full audit trail per query, per matter, per attorney.</div>
+      </div>
+      <div class="outcome">
+        <div class="ico">↻</div>
+        <div class="h">Weekly fine-tune flywheel</div>
+        <div class="d">Thumbs feedback queues into a labeling pipeline; KT-Llama gets a fresh LoRA every Friday. Quality is still climbing.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LESSONS -->
+<section class="s">
+  <div class="wrap-narrow">
+    <div class="s-label">what I learned</div>
+    <h2>Five lessons that <em>generalize.</em></h2>
+
+    <ol class="lessons">
+      <li><span class="num">01</span><span class="body"><b>Routing beats picking.</b> The "best LLM" question is a trap. The actually-useful question is <em>which model for which sub-task</em>, and you only learn that in production.</span></li>
+      <li><span class="num">02</span><span class="body"><b>Verification is the product.</b> Lawyers don't trust answers they can't trace. We spent more engineering hours on citation alignment and source attribution than on the model layer itself.</span></li>
+      <li><span class="num">03</span><span class="body"><b>Domain fine-tunes pay rent.</b> A 70B model trained on the firm's own corpus handled a quarter of all traffic at a tenth of the cost — but only after retrieval was good enough to feed it clean context.</span></li>
+      <li><span class="num">04</span><span class="body"><b>Shadow the user before you architect.</b> Two weeks watching paralegals run conflict checks reshaped the whole UI. You can't pull this from a Jira ticket.</span></li>
+      <li><span class="num">05</span><span class="body"><b>Ship the boring version first.</b> The single-model demo got us budget. Everything good came after — but only because the unglamorous v1 existed and people were already using it.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="s" style="border-bottom:none">
+  <div class="wrap-narrow">
+    <div class="cta">
+      <div class="text">
+        <h3>Building something similar?</h3>
+        <p>I take fractional CTO and senior AI engineering work — especially multi-LLM systems, agentic workflows, and "we already have the data, can we make it useful" projects.</p>
+      </div>
+      <a href="mailto:Michaelpopedeveloper@gmail.com">$ ./contact.sh →</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="statusline">
+  <span class="seg mode">NORMAL</span>
+  <span class="seg branch"> main</span>
+  <span class="seg" style="color:var(--fg-dim)"><b style="color:var(--fg)">~/projects/kt-nlp.tsx</b></span>
+  <span class="right">
+    <span class="seg">tsx</span>
+    <span class="seg">utf-8</span>
+    <span class="seg last" id="line-pos">1:1   Top</span>
+  </span>
+</div>
+
+<script>
+  const linePos = document.getElementById('line-pos');
+  function update() {
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    const pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+    linePos.textContent = Math.round(pct) + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+</script>
+</body>
+</html>
