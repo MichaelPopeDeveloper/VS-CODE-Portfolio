@@ -660,7 +660,7 @@ ${html}
           <b>michael@vegas</b> : <b>~/portfolio/posts</b> · <span style={{ color: meta.draft ? 'var(--accent-warn)' : 'var(--accent-3)' }}>{meta.draft ? 'draft' : 'published'}</span>
         </div>
         <div className="actions">
-          <a href="portfolio.html">← back</a>
+          <a href="/">← back</a>
           <button onClick={saveDraft}>⌘S save</button>
           <button onClick={exportMD}>↓ .md</button>
           <button onClick={exportHTML}>↓ .html</button>
